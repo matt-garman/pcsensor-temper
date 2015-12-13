@@ -15,17 +15,17 @@
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  * 
- * THIS SOFTWARE IS PROVIDED BY Philipp Adelt (and other contributors) ''AS IS'' AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL Philipp Adelt (or other contributors) BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ * THIS SOFTWARE IS PROVIDED BY Philipp Adelt (and other contributors) ''AS
+ * IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL Philipp Adelt (or other
+ * contributors) BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 
@@ -41,11 +41,6 @@
 #define VERSION "1.0.0"
  
 static int bsalir=1;
-static int debug=0;
-static int seconds=5;
-static int formato=0;
-static int mrtg=0;
-static int calibration=0;
 
  
 void ex_program(int sig) {
@@ -53,16 +48,40 @@ void ex_program(int sig) {
  
       (void) signal(SIGINT, SIG_DFL);
 }
+
+void usage(const char* progname)
+{
+    printf(
+            "pcsensor version %s\n"
+            "USAGE: %s [options] <arguments>\n"
+            "  ARGUMENTS:\n"
+            "  OPTIONS:\n"
+            "    -h help\n"
+            "    -v verbose\n"
+            "    -n[i] use device number i (0 is the first one found on the bus)\n"
+            "    -l[n] loop every 'n' seconds, default value is 300\n"
+            "    -c output only in Celsius\n"
+            "    -f output only in Fahrenheit\n"
+            "    -a[n] increase or decrease temperature in 'n' degrees for device calibration\n"
+            "    -m output for mrtg integration\n"
+            , VERSION
+            , progname
+          );
+}
  
 int main( int argc, char **argv) {
  
-     //usb_dev_handle *lvr_winusb = NULL;
      usb_temper_t usb_temper;
      float tempc;
      int c;
      struct tm *local;
      time_t t;
      int devicenum = 0;
+     int debug=0;
+     int seconds=5;
+     int formato=0;
+     int mrtg=0;
+     int calibration=0;
 
      while ((c = getopt (argc, argv, "mfcvhn:l::a:")) != -1)
      switch (c)
@@ -110,18 +129,8 @@ int main( int argc, char **argv) {
          }
        case '?':
        case 'h':
-         printf("pcsensor version %s\n",VERSION);
-	 printf("      Aviable options:\n");
-	 printf("          -h help\n");
-	 printf("          -v verbose\n");
-	 printf("          -n[i] use device number i (0 is the first one found on the bus)\n");
-	 printf("          -l[n] loop every 'n' seconds, default value is 5s\n");
-	 printf("          -c output only in Celsius\n");
-	 printf("          -f output only in Fahrenheit\n");
-	 printf("          -a[n] increase or decrease temperature in 'n' degrees for device calibration\n");
-	 printf("          -m output for mrtg integration\n");
-  
-	 exit(EXIT_FAILURE);
+         usage(argv[0]);
+	     exit(EXIT_FAILURE);
        default:
          if (isprint (optopt))
            fprintf (stderr, "Unknown option `-%c'.\n", optopt);
@@ -138,31 +147,12 @@ int main( int argc, char **argv) {
      }
 
  
-     //if ((lvr_winusb = setup_libusb_access(devicenum)) == NULL) {
-     //    exit(EXIT_FAILURE);
-     //} 
-
-     usb_temper = usb_temper_init(devicenum);
+     usb_temper = usb_temper_init(devicenum, debug, calibration);
 
      (void) signal(SIGINT, ex_program);
 
-     //ini_control_transfer(lvr_winusb);
-     // 
-     //control_transfer(lvr_winusb, uTemperatura );
-     //interrupt_read(lvr_winusb);
- 
-     //control_transfer(lvr_winusb, uIni1 );
-     //interrupt_read(lvr_winusb);
- 
-     //control_transfer(lvr_winusb, uIni2 );
-     //interrupt_read(lvr_winusb);
-     //interrupt_read(lvr_winusb);
-
-
  
      do {
-           //control_transfer(lvr_winusb, uTemperatura );
-           //interrupt_read_temperatura(lvr_winusb, &tempc);
            tempc = usb_temper_get_tempc(usb_temper);
 
            t = time(NULL);
@@ -204,11 +194,6 @@ int main( int argc, char **argv) {
               sleep(seconds);
      } while (!bsalir);
                                        
-     //usb_release_interface(lvr_winusb, USB_TEMPER_INTERFACE1);
-     //usb_release_interface(lvr_winusb, USB_TEMPER_INTERFACE2);
-     
-     //usb_close(lvr_winusb); 
-
      usb_temper_finish(&usb_temper);
       
      return 0; 

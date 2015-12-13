@@ -15,17 +15,17 @@
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  * 
- * THIS SOFTWARE IS PROVIDED BY Philipp Adelt (and other contributors) ''AS IS'' AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL Philipp Adelt (or other contributors) BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ * THIS SOFTWARE IS PROVIDED BY Philipp Adelt (and other contributors) ''AS
+ * IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL Philipp Adelt (or other
+ * contributors) BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 
@@ -55,8 +55,8 @@ const static int endpoint_Bulk_in=0x82; /* endpoint 0x81 address for IN */
 const static int endpoint_Bulk_out=0x00; /* endpoint 1 address for OUT */
 const static int timeout=5000; /* timeout in ms */
  
-static int debug=0;
-static int calibration=0;
+static int DEBUG=0;
+static int CALIBRATION=0;
 
 
 void bad(const char *why) {
@@ -73,18 +73,18 @@ void usb_detach(usb_dev_handle *lvr_winusb, int iInterface) {
 	ret = usb_detach_kernel_driver_np(lvr_winusb, iInterface);
 	if(ret) {
 		if(errno == ENODATA) {
-			if(debug) {
+			if(DEBUG) {
 				printf("Device already detached\n");
 			}
 		} else {
-			if(debug) {
+			if(DEBUG) {
 				printf("Detach failed: %s[%d]\n",
 				       strerror(errno), errno);
 				printf("Continuing anyway\n");
 			}
 		}
 	} else {
-		if(debug) {
+		if(DEBUG) {
 			printf("detach successful\n");
 		}
 	}
@@ -93,7 +93,7 @@ void usb_detach(usb_dev_handle *lvr_winusb, int iInterface) {
 usb_dev_handle* setup_libusb_access(int devicenum) {
      usb_dev_handle *lvr_winusb;
 
-     if(debug) {
+     if(DEBUG) {
         usb_set_debug(255);
      } else {
         usb_set_debug(0);
@@ -151,7 +151,7 @@ usb_dev_handle *find_lvr_winusb(int devicenum) {
                                   continue;
                                 }
                                 usb_dev_handle *handle;
-                                if(debug) {
+                                if(DEBUG) {
                                   printf("lvr_winusb with Vendor Id: %x and Product Id: %x found.\n", USB_TEMPER_VENDOR_ID, USB_TEMPER_PRODUCT_ID);
                                 }
  
@@ -179,8 +179,10 @@ void ini_control_transfer(usb_dev_handle *dev) {
     }
 
 
-    if(debug) {
-      for (i=0;i<reqIntLen; i++) printf("%02x ",question[i] & 0xFF);
+    if(DEBUG) {
+      for (i=0; i<(sizeof(question)/sizeof(question[0])); i++) {
+          printf("%02x ",question[i] & 0xFF);
+      }
       printf("\n");
     }
 }
@@ -198,7 +200,7 @@ void control_transfer(usb_dev_handle *dev, const char *pquestion) {
           perror("USB control write"); bad("USB write failed"); 
     }
 
-    if(debug) {
+    if(DEBUG) {
         for (i=0;i<reqIntLen; i++) printf("%02x ",question[i]  & 0xFF);
         printf("\n");
     }
@@ -221,7 +223,7 @@ void interrupt_transfer(usb_dev_handle *dev) {
           perror("USB interrupt read"); bad("USB read failed"); 
     }
 
-    if(debug) {
+    if(DEBUG) {
        for (i=0;i<reqIntLen; i++) printf("%i, %i, \n",question[i],answer[i]);
     }
  
@@ -240,7 +242,7 @@ void interrupt_read(usb_dev_handle *dev) {
           perror("USB interrupt read"); bad("USB read failed"); 
     }
 
-    if(debug) {
+    if(DEBUG) {
        for (i=0;i<reqIntLen; i++) printf("%02x ",answer[i]  & 0xFF);
     
        printf("\n");
@@ -260,14 +262,14 @@ void interrupt_read_temperatura(usb_dev_handle *dev, float *tempC) {
     }
 
 
-    if(debug) {
+    if(DEBUG) {
       for (i=0;i<reqIntLen; i++) printf("%02x ",answer[i]  & 0xFF);
     
       printf("\n");
     }
     
     temperature = (answer[3] & 0xFF) + (answer[2] << 8);
-    temperature += calibration;
+    temperature += CALIBRATION;
     *tempC = temperature * (125.0 / 32000.0);
 
 }
@@ -289,7 +291,7 @@ void bulk_transfer(usb_dev_handle *dev) {
     }
 
 
-    if(debug) {
+    if(DEBUG) {
       for (i=0;i<reqBulkLen; i++) printf("%02x ",answer[i]  & 0xFF);
     }
  
@@ -308,7 +310,7 @@ void* malloc_wrapper(size_t n, const char* file, int line)
     return ptr;
 }
 
-usb_temper_t usb_temper_init(int devicenum)
+usb_temper_t usb_temper_init(int devicenum, int debug, int calibration)
 {
     usb_dev_handle *usb_handle = setup_libusb_access(devicenum);
     if (NULL == usb_handle)
@@ -331,6 +333,9 @@ usb_temper_t usb_temper_init(int devicenum)
     usb_temper_t usb_temper = MALLOC(sizeof(*usb_temper));
     usb_temper->usb_handle = usb_handle;
     usb_temper->devicenum  = devicenum;
+
+    DEBUG = debug;
+    CALIBRATION = calibration;
 
     return usb_temper;
 }
