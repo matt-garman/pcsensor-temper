@@ -34,6 +34,8 @@
 #include <usb.h>
 
 #define MALLOC(n) malloc_wrapper((n), __FILE__, __LINE__)
+
+#define DEG_C_TO_DEG_F(deg_c) ((9.0 / 5.0 * (deg_c) + 32.0))
  
 struct usb_temper
 {
